@@ -28,8 +28,8 @@ HDF5 files are binary files intended for storing arbitrary N-dimensional dataset
 There is no limit on how big the datasets can be; HDF5 can hold arbitrarily large amounts of data.
 HDF5 has a complex, filesystem-like structure that allows one file to hold many datasets in an organized fashion.
 
-[HDF5 file structure. "Groups" are analogous to directories on a Unix-like filesystem, and datasets then correspond to files.](../img/hdf5_structure.png).
+[HDF5 file structure. "Groups" are analogous to directories on a Unix-like filesystem, and datasets then correspond to files.](./img/hdf5_structure.png)
 
 The HDF5 API provides functions for creating and manipulating HDF5 files and datasets within them. The API is very flexible, giving the programmer full control over how datasets should be created or accessed. The price to pay for this flexibility is that the API is rather verbose and abstract. For example,
 
-[{caption=caption test}](../img/hdf5_dataset.png)
+[Nice image{caption=caption test}](./img/hdf5_dataset.png)
