@@ -147,7 +147,15 @@ This should be called from all MPI processes, and same for `H5Fclose()` when cle
 
 How do we write data to the file while ensuring that parallel writes from different processes do not mess with each other? Recall that in MPI-IO we could calculate a different `MPI_Offset` for each rank and pass this to I/O operations to read/write different sections of the file stream.
 
-HDF5 uses a more general (and abstract) way of specifying offsets: **hyperslabs**. More specifically, hyperslabs are used to *select* subregions of datasets for data manipulation or I/O, hence the name: they are slices of N-dimensional datasets. Hyperslabs can be useful also in serial applications that need to operate only on specific parts of a dataset. Here we demonstrate their use with parallel dataset writes.
+HDF5 uses a more general (and abstract) way of specifying offsets: **hyperslabs**. More specifically, hyperslabs are used to *select* subregions of dataspaces for data manipulation or I/O, hence the name: they are slices of N-dimensional spaces. Hyperslabs can be useful also in serial applications that need to operate only on specific parts of a dataset. Here we demonstrate their use with parallel dataset writes.
+
+We can select hyperslabs from a dataspace using [H5Sselect_hyperslab()](https://docs.hdfgroup.org/archive/support/HDF5/doc/RM/RM_H5S.html#Dataspace-SelectHyperslab). It takes in the following arguments:
+- Dataspace ID
+- A "selection operation code", ie. what kind of selection are we performing. For example, `H5S_SELECT_SET` will replace any existing selection with the new selection, `H5S_SELECT_OR` will add any new hyperslabs to an existing selection, and so on.
+- Start (`hsize_t` array): Specifies starting offset for the selection, ie. how many elements to skip in each direction before starting selection.
+- WIP
+
+Once selected, HDF5 "remembers" the selection and ...
 
 TODO: explain hyperslab creation and parameters
 
