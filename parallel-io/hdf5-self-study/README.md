@@ -32,14 +32,14 @@ HDF5 files are binary files intended for storing arbitrary N-dimensional dataset
 There is no limit on how big the datasets can be; HDF5 can hold arbitrarily large amounts of data.
 HDF5 has a complex, filesystem-like structure that allows one file to hold many datasets in an organized fashion.
 
-![](./img/hdf5_structure.png)  
+![](./img/hdf5_structure.png)
 *HDF5 file structure. "Groups" are analogous to directories on a Unix-like filesystem, and datasets then correspond to files.*
 
 
 The HDF5 data model separates the **shape** of data from the dataset itself. Data shape (number of rows, columns etc.) in HDF5 is called a **dataspace**. Dataspaces and datasets must be managed separately by the programmer, and creation of a dataset requires a valid dataspace.
 - Analogy from Python: `numpy` arrays and their `numpy.shape` objects.
 
-![](./img/hdf5_dataset.png)  
+![](./img/hdf5_dataset.png)
 *Example HDF5 dataset and its metadata. Image taken from https://portal.hdfgroup.org/documentation/hdf5/latest/_intro_h_d_f5.html.*
 
 The minimal steps for creating an HDF5 file and writing a dataset to it are as follows:
@@ -81,7 +81,7 @@ hid_t fileId = H5Fopen(
     "someFile.h5",  // File name
     H5F_ACC_RDONLY, // Read-only access
     H5P_DEFAULT     // Default access properties
-);   
+);
 
 // Open a dataset in the file
 datasetId = H5Dopen(
@@ -118,3 +118,43 @@ Ensure you understand the concepts and order of HDF5 operations in the example p
 
 The HDF5 development library can be compiled with MPI support to allow many MPI processes to operate on shared HDF5 files. In the API, parallel access to HDF5 files is configured at the time of file creation or opening (`H5Fcreate()` or `H5Fopen()`) using the "file access property" argument to the function call. So far we have bypassed this argument by setting it to `H5P_DEFAULT`; in many cases the default behavior is indeed sufficient, but for parallel I/O we must configure the file access manually.
 
+The HDF5 API uses objects called [**Property Lists**](https://portal.hdfgroup.org/documentation/hdf5/latest/_h5_p__u_g.html) for configuring API calls. These are collections of configurable **properties** specified by the HDF5 standard. Property Lists come in different flavors, or **Property List Classes**, depending on what properties they manage.
+- *Side note*: Notice how similar this design is to Object Oriented Programming (OOP), despite OOP not being a built-in feature in neither C nor Fortran.
+
+In the case of parallel I/O, we need a Property List for configuring file access specifically. We can create one as follows:
+```c
+hid_t plist = H5Pcreate(H5P_FILE_ACCESS);
+```
+Next we tell the Property List about our MPI setup. HDF5 provides a [function specifically for this purpose](https://support.hdfgroup.org/documentation/hdf5/latest/group___f_a_p_l.html#ga7519d659a83ef5717d7a5d95baf0e9b1):
+```c
+// Note the abbreviation: fapl = File Access Property List
+herr_t status = H5Pset_fapl_mpio(plist, MPI_COMM_WORLD, MPI_INFO_NULL);
+```
+The last argument is of `MPI_Info` type and could be used for advanced MPI-IO configuration. The return value is an error code (negative value means failure).
+
+With this, the following call creates a new HDF5 file and opens it for parallel access in all MPI ranks:
+```c
+hid_t file = H5Fcreate(
+    "parallelFile.h5",  // file name
+    H5F_ACC_TRUNC,      // Truncate if file exists. Read/write access is implied
+    H5P_DEFAULT,        // Default creation behavior
+    plist               // Non-default File Access behavior to allow MPI-IO
+);
+```
+This should be called from all MPI processes, and same for `H5Fclose()` when cleaning up.
+
+### Using hyperslabs to avoid overlapping writes
+
+How do we write data to the file while ensuring that parallel writes from different processes do not mess with each other? Recall that in MPI-IO we could calculate a different `MPI_Offset` for each rank and pass this to I/O operations to read/write different sections of the file stream.
+
+HDF5 uses a more general (and abstract) way of specifying offsets: **hyperslabs**. More specifically, hyperslabs are used to *select* subregions of datasets for data manipulation or I/O, hence the name: they are slices of N-dimensional datasets. Hyperslabs can be useful also in serial applications that need to operate only on specific parts of a dataset. Here we demonstrate their use with parallel dataset writes.
+
+TODO: explain hyperslab creation and parameters
+
+![](./img/hdf5-hyperslabs.svg)
+
+More hyperslab visualizations can be found on the [HDF5 homepage](https://portal.hdfgroup.org/documentation/hdf5/latest/_l_b_dset_sub_r_w.html).
+
+### Collective I/O with HDF5
+
+- Need to use `H5Pset_dxpl_mpio` and configure file transfer properties
