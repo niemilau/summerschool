@@ -109,10 +109,12 @@ Often it it convenient to inspect HDF5 file contents directly from the command l
 
 ### Case study: `hdf5-write-matrix`
 
-Have a look at the example program (C++ or Fortran) in [`hdf5-write-matrix`](hdf5-write-matrix/). This program creates a contiguous 1D array and writes it to an HDF5 file as a 2D dataset (a common way of implementing multidimensional arrays is to use a large 1D array and simply interpret it as N-dimensional). A metadata field is also written using an `double` attribute.
+Have a look at the example program (C++ or Fortran) in [`hdf5-write-matrix`](hdf5-write-matrix/). This program creates a contiguous 1D array and writes it to an HDF5 file as a 2D dataset (a common way of implementing multidimensional arrays is to use a large 1D array and simply interpret it as N-dimensional). A metadata field is also written using a `double` attribute.
 
 Ensure you understand the concepts and order of HDF5 operations in the example program.
 
 
 ## Parallel write with HDF5 and MPI
+
+The HDF5 development library can be compiled with MPI support to allow many MPI processes to operate on shared HDF5 files. In the API, parallel access to HDF5 files is configured at the time of file creation or opening (`H5Fcreate()` or `H5Fopen()`) using the "file access property" argument to the function call. So far we have bypassed this argument by setting it to `H5P_DEFAULT`; in many cases the default behavior is indeed sufficient, but for parallel I/O we must configure the file access manually.
 
