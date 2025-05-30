@@ -32,8 +32,8 @@ int main(int argc, char **argv) {
         // In HDF5 the file creation function is `H5Fcreate`, which returns an integer ID to the created object ("handle to object").
         // The last 2 arguments can be used for advanced configurations; here we just use the defaults by passing `H5P_DEFAULT`.
         hid_t fileId = H5Fcreate(
-            "matrix.h5",   // file name
-            H5F_ACC_TRUNC,    // "truncate mode", ie. overwrite existing file. Read-write access is always implied
+            "matrix.h5",    // file name
+            H5F_ACC_TRUNC,  // "truncate mode", ie. overwrite existing file. Read-write access is always implied
             H5P_DEFAULT,    // Default file creation options
             H5P_DEFAULT     // Default file access options (we explore this in a follow-up exercise)
         );
@@ -45,9 +45,9 @@ int main(int argc, char **argv) {
 
         // 2D dataspace creation. "simple dataspace" is HDF5 jargon for a multidimensional array
         hid_t dataspaceId = H5Screate_simple(
-            2,  // 2D dataspace
-            dims,    // Shape, ie. how many rows and columns
-            NULL // Could limit maximum row/column count here. NULL means unspecified
+            2,      // 2D dataspace
+            dims,   // Shape, ie. how many rows and columns
+            NULL    // Could limit maximum row/column count here. NULL means unlimited
         );
 
         // Create the dataset, no actual I/O here yet.
@@ -71,9 +71,9 @@ int main(int argc, char **argv) {
             datasetId,      // Dataset to write to
             H5T_NATIVE_INT, // Type of the data, should match the type used when defining the dataset
             H5S_ALL,        // Dataspace describing layout of the memory buffer
-            H5S_ALL,       // Dataspace describing where in the dataset we write to
-            H5P_DEFAULT,        // Default data transfer options
-            matrix.data()
+            H5S_ALL,        // Dataspace describing where in the dataset we write to
+            H5P_DEFAULT,    // Default data transfer options
+            matrix.data()   // Pointer to data
         );
 
         // Write some metadata using HDF5 attributes. Here we just write a dummy floating point number.
