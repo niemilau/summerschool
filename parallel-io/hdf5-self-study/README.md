@@ -16,17 +16,19 @@ You can find the official HDF5 documentation [here](https://support.hdfgroup.org
 
 The HDF5 API provides functions for creating and manipulating HDF5 files and datasets within them. The API is very flexible, giving the programmer full control over how datasets should be created or accessed. The price to pay for this flexibility is that the programming interface is rather verbose and abstract. For example, many API calls allow the programmer to configure their behavior by passing **HDF5 Property List** objects as function argument, but in many cases the default behavior is sufficient in which case we instead pass `H5P_DEFAULT`.
 
-Thorough these notes we will use the "standard" C-style API, accessible in C/C++ by including the header `hdf5.h`. The [Fortran API](https://docs.hdfgroup.org/archive/support/HDF5/doc/fortran/index.html) is rather similar, but has the following differences:
+Thorough these notes we will use the "standard" C-style API, accessible in C/C++ by including the header `hdf5.h`. Most API functions that create HDF5 state (eg. file or dataset creation) return an integer identifier of type `hid_t` to the created resource, instead of returning a direct pointer to it. Likewise, functions that operate on HDF5 objects take in these IDs, or **handles**, as arguments. This is a somewhat common way of hiding implementation details of library objects or structs from the programmer. Some routines return an error code (integer of `herr_t` type) that can be used for manual error checking. This is not always necessary because many HDF5 routines have a built-in validation layer that complains if your use of the API is wrong.
+
+In addition to the C-style API used here, you should be aware of the following alternatives when implementing HDF5 in your own codes:
+- [Official "high-level" HDF5 APIs](https://docs.hdfgroup.org/archive/support/HDF5/doc/HL/index.html). These are simplified APIs that are considerably less verbose than the "full" API. In practice they are wrappers around the full API and aim to streamline common operations such as dataset read/write. The main downside is that some advanced features such as parallel I/O are not available.
+- For C++ users, the header `H5Cpp.h` provides C++ style bindings to the full API. Concepts from the C-style API carry over. It is of course valid to use the C-API also in C++ if you prefer.
+- The Python package [`h5py`](https://pypi.org/project/h5py/) has both a high-level API for common HDF5 tasks, and also a Python wrapper around the low-level C-API.
+
+### HDF5 Fortran API
+
+The [Fortran API](https://docs.hdfgroup.org/archive/support/HDF5/doc/fortran/index.html) is rather similar to the C-style API, but has the following differences:
 - Function names in Fortran are suffixed by `_f`. Eg: `H5Dcreate` in C becomes `h5dcreate_f` in Fortran.
 - Some functions have the error code as an additional output argument
 - Order of arguments may sometimes vary relative to the C version. Input arguments come first, then output parameters (including the error code), then optional input parameters.
-
-Most API functions that create HDF5 state (eg. file or dataset creation) return an integer identifier of type `hid_t` to the created resource, instead of returning a direct pointer to it. Likewise, functions that operate on HDF5 objects take in these IDs, or **handles**, as arguments. This is a somewhat common way of hiding implementation details of library objects or structs from the programmer. Some routines return an error code (integer of `herr_t` type) that can be used for manual error checking. This is not always necessary because many HDF5 routines have a built-in validation layer that complains if your use of the API is wrong.
-
-In addition to the C-style API used here, you should be aware of the following alternatives when implementing HDF5 in your own codes:
-- [Official "high-level" HDF5 APIs](https://docs.hdfgroup.org/archive/support/HDF5/doc/HL/index.html). These are simplified APIs that are considerably less verbose than the "full" API. In practice they are wrappers around the full API and streamline common operations such as dataset read/write. The main downside is that some advanced features such as parallel I/O are not available.
-- For C++ users, the header `H5Cpp.h` provides C++ style bindings to the full API. Concepts from the C-style API carry over. It is of course valid to use the C-API also in C++.
-- The Python package [`h5py`](https://pypi.org/project/h5py/) has both a high-level API for common HDF5 tasks, and also a Python wrapper around the low-level C-API.
 
 
 ## HDF5 file structure
