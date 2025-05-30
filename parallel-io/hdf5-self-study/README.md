@@ -12,6 +12,8 @@ We will cover the following:
 
 You can find the official HDF5 documentation [here](https://support.hdfgroup.org/documentation/hdf5/latest/index.html). Especially useful are the User Guide and Reference Manual tabs.
 
+**TODO:** Prepare Fortran example codes!
+
 ## The HDF5 programming interface (= API)
 
 The HDF5 API provides functions for creating and manipulating HDF5 files and datasets within them. The API is very flexible, giving the programmer full control over how datasets should be created or accessed. The price to pay for this flexibility is that the programming interface is rather verbose and abstract. For example, many API calls allow the programmer to configure their behavior by passing **HDF5 Property List** objects as function argument, but in many cases the default behavior is sufficient in which case we instead pass `H5P_DEFAULT`.
