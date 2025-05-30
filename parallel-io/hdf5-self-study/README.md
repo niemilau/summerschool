@@ -120,17 +120,12 @@ Read through the example code (C++ or Fortran) in [`hdf5-write-matrix`](hdf5-wri
 Exercises:
 1. Compile and run the program (without MPI, or just 1 MPI process). It should produce a file called `matrix.h5` in the working directory. See [](hdf5-exercise-instructions.md) for compilation instructions.
 2. Use the HDF5 command line tools to inspect contents of the file.
-    - List of datasets in the file, and their shapes:
-    ```bash
-    h5ls matrix.h5
-    ```
-    ```bash
-    h5ls matrix.h5
-    ```
-
+```bash
+h5ls matrix.h5
 h5dump matrix.h5
 ```
 `h5ls` gives a list of datasets in the file and their shapes. Ensure you understand the output. `h5dump` gives a full dump of the file contents. Can you identify the matrix values, and the metadata?
+
 3. How would you modify the example code to instead produce a 3D dataset?
 
 
