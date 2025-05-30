@@ -4,27 +4,29 @@ HDF5 is a file format that has become popular in scientific and industrial compu
 
 These notes give an introduction to the HDF5 file format and its C/Fortran API.
 We will cover the following:
-- Creating and writing HDF5 datasets into a file
+- Creating and writing HDF5 datasets into a file, and reading them
 - Writing metadata for the datasets
 - Investigating HDF5 file contents with command line tools
-- Writing to HDF5 file from multiple MPI processes
+- Using MPI parallel I/O with HDF5 files
 - Using HDF5 hyperslabs to selectively operate on parts of a dataset
 
 You can find the official HDF5 documentation [here](https://support.hdfgroup.org/documentation/hdf5/latest/index.html). Especially useful are the User Guide and Reference Manual tabs.
 
-## Code examples and exercises
+## The HDF5 programming interface
 
 The HDF5 API provides functions for creating and manipulating HDF5 files and datasets within them. The API is very flexible, giving the programmer full control over how datasets should be created or accessed. The price to pay for this flexibility is that the programming interface is rather verbose and abstract. For example, many API calls allow the programmer to configure their behavior by passing **HDF5 Property List** objects as function argument, but in many cases the default behavior is sufficient in which case we instead pass `H5P_DEFAULT`.
 
+Thorough these notes we will use the "standard" C-style API, accessible in C/C++ by including the header `hdf5.h`. The [Fortran API](https://docs.hdfgroup.org/archive/support/HDF5/doc/fortran/index.html) is rather similar, but has the following differences:
+- Function names in Fortran are suffixed by `_f`. Eg: `H5Dcreate` in C becomes `h5dcreate_f` in Fortran.
+- Some functions have the error code as an additional output argument
+- Order of arguments may sometimes vary relative to the C version. Input arguments come first, then output parameters (including the error code), then optional input parameters.
+
 Most API functions that create HDF5 state (eg. file or dataset creation) return an integer identifier of type `hid_t` to the created resource, instead of returning a direct pointer to it. Likewise, functions that operate on HDF5 objects take in these IDs, or **handles**, as arguments. This is a somewhat common way of hiding implementation details of library objects or structs from the programmer.
 
-There are example programs and code exercises associated with these notes.
-
-TODO:
-- mention here that we use C-style API
-- C++ users may find the C++ bindings useful
-- Mention simplified HDF5 API
-- mention h5py
+In addition to the C-style API used here, you should be aware of the following alternatives when implementing HDF5 in your own codes:
+- [Official "high-level" HDF5 APIs](https://docs.hdfgroup.org/archive/support/HDF5/doc/HL/index.html). These are simplified APIs that are considerably less verbose than the "full" API. In practice they are wrappers around the full API and streamline common operations such as dataset read/write. The main downside is that some advanced features such as parallel I/O are not available.
+- For C++ users, the header `H5Cpp.h` provides C++ style bindings to the full API. Concepts from the C-style API carry over. It is of course valid to use the C-API also in C++.
+- The Python package [`h5py`](https://pypi.org/project/h5py/) has both a high-level API for common HDF5 tasks, and also a Python wrapper around the low-level C-API.
 
 ## HDF5 file structure
 
@@ -107,7 +109,7 @@ If the types/names/shapes of stored data are unknown, we should query them from 
 
 Often it it convenient to inspect HDF5 file contents directly from the command line. For this the commands `h5ls` and `h5dump` can be used. These tools are usually bundled with HDF5 installations, or on computing clusters become available after loading an appropriate HDF5 module. We practice using these tools in the case study below.
 
-### Case study: `hdf5-write-matrix`
+### Case study: Writing a 2D dataset
 
 Have a look at the example program (C++ or Fortran) in [`hdf5-write-matrix`](hdf5-write-matrix/). This program creates a contiguous 1D array and writes it to an HDF5 file as a 2D dataset (a common way of implementing multidimensional arrays is to use a large 1D array and simply interpret it as N-dimensional). A metadata field is also written using a `double` attribute.
 
@@ -125,7 +127,7 @@ In the case of parallel I/O, we need a Property List for configuring file access
 ```c
 hid_t plist = H5Pcreate(H5P_FILE_ACCESS);
 ```
-Next we tell the Property List about our MPI setup. HDF5 provides a [function specifically for this purpose](https://support.hdfgroup.org/documentation/hdf5/latest/group___f_a_p_l.html#ga7519d659a83ef5717d7a5d95baf0e9b1):
+Next we tell the Property List about our MPI setup, on in HDF5 language, we must set the relevant **property**. HDF5 provides a [function specifically for this purpose](https://support.hdfgroup.org/documentation/hdf5/latest/group___f_a_p_l.html#ga7519d659a83ef5717d7a5d95baf0e9b1):
 ```c
 // Note the abbreviation: fapl = File Access Property List
 herr_t status = H5Pset_fapl_mpio(plist, MPI_COMM_WORLD, MPI_INFO_NULL);
@@ -141,7 +143,7 @@ hid_t file = H5Fcreate(
     plist               // Non-default File Access behavior to allow MPI-IO
 );
 ```
-This should be called from all MPI processes, and same for `H5Fclose()` when cleaning up.
+This should be called from all MPI processes: it is a *collective* operation. Same for `H5Fclose()` when cleaning up.
 
 ### Using hyperslabs to avoid overlapping writes
 
@@ -149,20 +151,38 @@ How do we write data to the file while ensuring that parallel writes from differ
 
 HDF5 uses a more general (and abstract) way of specifying offsets: **hyperslabs**. More specifically, hyperslabs are used to *select* subregions of dataspaces for data manipulation or I/O, hence the name: they are slices of N-dimensional spaces. Hyperslabs can be useful also in serial applications that need to operate only on specific parts of a dataset. Here we demonstrate their use with parallel dataset writes.
 
-We can select hyperslabs from a dataspace using [H5Sselect_hyperslab()](https://docs.hdfgroup.org/archive/support/HDF5/doc/RM/RM_H5S.html#Dataspace-SelectHyperslab). It takes in the following arguments:
+Hyperslab selection is organized in terms of **blocks** of dataspace elements. Eg: for a 2D dataspace, block size of `(2, 2)` means we would select one or more subspaces, each containing 2x2 elements. Block size of `(1, 1)` would mean we'd just select individual elements (default behavior). We can select hyperslabs (one or more) from a dataspace using [H5Sselect_hyperslab()](https://docs.hdfgroup.org/archive/support/HDF5/doc/RM/RM_H5S.html#Dataspace-SelectHyperslab). It takes in the following arguments:
 - Dataspace ID
 - A "selection operation code", ie. what kind of selection are we performing. For example, `H5S_SELECT_SET` will replace any existing selection with the new selection, `H5S_SELECT_OR` will add any new hyperslabs to an existing selection, and so on.
-- Start (`hsize_t` array): Specifies starting offset for the selection, ie. how many elements to skip in each direction before starting selection.
-- WIP
+- The following 4 `hsize_t` arrays, length of each one must match dataspace dimensionality/rank:
+    - Starting offset: How many elements to skip in each direction before starting selection.
+    - Stride: Specifies how the dataspace is traversed when selecting elements. `stride[i]` is the number of elements to move in direction `i`, ie. elements to be selected are `offset[i]`, `offset[i] + stride[i]`, `offset[i] + 2*stride[i]` etc. Passing `NULL` stride defaults to 1 in all directions, meaning a contiguous selection.
+    - Block count: How many blocks to select in each direction.
+    - Block size: How many elements to include in one block, as discussed above. `NULL` means 1 in each direction (single-element blocks).
 
-Once selected, HDF5 "remembers" the selection and ...
-
-TODO: explain hyperslab creation and parameters
+See the following figure for a demonstration of hyperslab selection. More hyperslab visualizations can be found on the [HDF5 homepage](https://portal.hdfgroup.org/documentation/hdf5/latest/_l_b_dset_sub_r_w.html).
 
 ![](./img/hdf5-hyperslabs.svg)
+*Hyperslab selection example*
 
-More hyperslab visualizations can be found on the [HDF5 homepage](https://portal.hdfgroup.org/documentation/hdf5/latest/_l_b_dset_sub_r_w.html).
+HDF5 "remembers" which hyperslab of the dataspace is currently selected and allows dataspace operations only in the active selection. This is useful for parallel I/O: each MPI process can select a unique hyperslab based on its MPI rank, and use `H5Dwrite/H5Dread` to perform I/O only in its own hyperslab.
 
-### Collective I/O with HDF5
 
-- Need to use `H5Pset_dxpl_mpio` and configure file transfer properties
+### Collective I/O HDF5
+
+Recall that collective operations must be called from all MPI processes (for example, `MPI_Bcast()` or `MPI_File_write_at_all()`). Collective operations give the MPI implementation more opportunities for optimizations.
+
+In parallel HDF5, some of the API calls can be made collective with Property List configurations, and some are defined to always be collective. For example, dataset creation with `H5Dcreate()` is always collective, whereas dataset write with `H5Dwrite()` is non-collective by default. You can read more about collectiveness requirements of the HDF5 API calls in [the docs](https://support.hdfgroup.org/documentation/hdf5/latest/collective_calls.html).
+
+Dataset read and write operations can be made collective by configuring their Transfer Property List argument accordingly. As before with parallel file access, we create a new Property List and use a dedicated property setter call:
+```c
+// Common abbreviation: xfer_plist = Transfer Property List
+hid_t xfer_plist = H5Pcreate(H5P_DATASET_XFER);
+herr_t status = H5Pset_dxpl_mpio(xfer_plist, H5FD_MPIO_COLLECTIVE);
+// Pass this to H5Dwrite()/H5Dread(). Example:
+H5Dwrite(dataset, H5T_NATIVE_INT, memspace, filespace, xfer_plist, data_pointer);
+```
+
+### Case study: parallel write
+
+
