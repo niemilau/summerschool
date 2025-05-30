@@ -12,7 +12,7 @@ We will cover the following:
 
 You can find the official HDF5 documentation [here](https://support.hdfgroup.org/documentation/hdf5/latest/index.html). Especially useful are the User Guide and Reference Manual tabs.
 
-## The HDF5 programming interface
+## The HDF5 programming interface (= API)
 
 The HDF5 API provides functions for creating and manipulating HDF5 files and datasets within them. The API is very flexible, giving the programmer full control over how datasets should be created or accessed. The price to pay for this flexibility is that the programming interface is rather verbose and abstract. For example, many API calls allow the programmer to configure their behavior by passing **HDF5 Property List** objects as function argument, but in many cases the default behavior is sufficient in which case we instead pass `H5P_DEFAULT`.
 
@@ -21,12 +21,13 @@ Thorough these notes we will use the "standard" C-style API, accessible in C/C++
 - Some functions have the error code as an additional output argument
 - Order of arguments may sometimes vary relative to the C version. Input arguments come first, then output parameters (including the error code), then optional input parameters.
 
-Most API functions that create HDF5 state (eg. file or dataset creation) return an integer identifier of type `hid_t` to the created resource, instead of returning a direct pointer to it. Likewise, functions that operate on HDF5 objects take in these IDs, or **handles**, as arguments. This is a somewhat common way of hiding implementation details of library objects or structs from the programmer.
+Most API functions that create HDF5 state (eg. file or dataset creation) return an integer identifier of type `hid_t` to the created resource, instead of returning a direct pointer to it. Likewise, functions that operate on HDF5 objects take in these IDs, or **handles**, as arguments. This is a somewhat common way of hiding implementation details of library objects or structs from the programmer. Some routines return an error code (integer of `herr_t` type) that can be used for manual error checking. This is not always necessary because many HDF5 routines have a built-in validation layer that complains if your use of the API is wrong.
 
 In addition to the C-style API used here, you should be aware of the following alternatives when implementing HDF5 in your own codes:
 - [Official "high-level" HDF5 APIs](https://docs.hdfgroup.org/archive/support/HDF5/doc/HL/index.html). These are simplified APIs that are considerably less verbose than the "full" API. In practice they are wrappers around the full API and streamline common operations such as dataset read/write. The main downside is that some advanced features such as parallel I/O are not available.
 - For C++ users, the header `H5Cpp.h` provides C++ style bindings to the full API. Concepts from the C-style API carry over. It is of course valid to use the C-API also in C++.
 - The Python package [`h5py`](https://pypi.org/project/h5py/) has both a high-level API for common HDF5 tasks, and also a Python wrapper around the low-level C-API.
+
 
 ## HDF5 file structure
 
@@ -35,7 +36,7 @@ There is no limit on how big the datasets can be; HDF5 can hold arbitrarily larg
 HDF5 has a complex, filesystem-like structure that allows one file to hold many datasets in an organized fashion.
 
 ![](./img/hdf5_structure.png)
-*HDF5 file structure. "Groups" are analogous to directories on a Unix-like filesystem, and datasets then correspond to files.*
+*HDF5 file structure. "Groups" are analogous to directories on a Unix-like filesystem, and "datasets" then correspond to files.*
 
 
 The HDF5 data model separates the **shape** of data from the dataset itself. Data shape (number of rows, columns etc.) in HDF5 is called a **dataspace**. Dataspaces and datasets must be managed separately by the programmer, and creation of a dataset requires a valid dataspace.
@@ -55,6 +56,7 @@ A more detailed specification of memspace and file space semantics can be found 
 
 This is a lot of programming overhead just for outputting data to a file! For simple writes most of this machinery is indeed unnecessarily complicated, but becomes very useful when working with complex or parallel data.
 
+
 ### Writing metadata via HDF5 attributes
 
 HDF5 [**attributes**](https://portal.hdfgroup.org/documentation/hdf5/latest/_h5_a__u_g.html) are a special data structure intended for storing metadata. Metadata *could* be stored as standard HDF5 datasets, however this can be inefficient because metadata is usually small compared the actual data. HDF5 attributes are similar to datasets, but optimized for small metadata that can be *attached* to datasets.
@@ -67,6 +69,7 @@ Attributes can be created using the [`H5Acreate function`](https://docs.hdfgroup
 - Creation/access configuration options (`H5P_DEFAULT` gives default behavior)
 
 Once created, the attribute can be written to file with [`H5Awrite`](https://docs.hdfgroup.org/archive/support/HDF5/doc/RM/RM_H5A.html#Annot-Write). The syntax is considerably simpler than the write function for datasets.
+
 
 ### Reading HDF5 files
 
@@ -109,11 +112,26 @@ If the types/names/shapes of stored data are unknown, we should query them from 
 
 Often it it convenient to inspect HDF5 file contents directly from the command line. For this the commands `h5ls` and `h5dump` can be used. These tools are usually bundled with HDF5 installations, or on computing clusters become available after loading an appropriate HDF5 module. We practice using these tools in the case study below.
 
+
 ### Case study: Writing a 2D dataset
 
-Have a look at the example program (C++ or Fortran) in [`hdf5-write-matrix`](hdf5-write-matrix/). This program creates a contiguous 1D array and writes it to an HDF5 file as a 2D dataset (a common way of implementing multidimensional arrays is to use a large 1D array and simply interpret it as N-dimensional). A metadata field is also written using a `double` attribute.
+Read through the example code (C++ or Fortran) in [`hdf5-write-matrix`](hdf5-write-matrix/). This program creates a contiguous 1D array and writes it to an HDF5 file as a 2D dataset (a common way of implementing multidimensional arrays is to use a large 1D array and simply interpret it as N-dimensional). A metadata field is also written using a `double` attribute.
 
-Ensure you understand the concepts and order of HDF5 operations in the example program.
+Exercises:
+1. Compile and run the program (without MPI, or just 1 MPI process). It should produce a file called `matrix.h5` in the working directory. See [](hdf5-exercise-instructions.md) for compilation instructions.
+2. Use the HDF5 command line tools to inspect contents of the file.
+    - List of datasets in the file, and their shapes:
+    ```bash
+    h5ls matrix.h5
+    ```
+    ```bash
+    h5ls matrix.h5
+    ```
+
+h5dump matrix.h5
+```
+`h5ls` gives a list of datasets in the file and their shapes. Ensure you understand the output. `h5dump` gives a full dump of the file contents. Can you identify the matrix values, and the metadata?
+3. How would you modify the example code to instead produce a 3D dataset?
 
 
 ## Parallel write with HDF5 and MPI

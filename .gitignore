@@ -45,3 +45,7 @@ solutions/programming/fortran/io/io
 *.Rproj
 .RData
 .Rhistory
+
+#ignore hdf5 datafiles
+*.h5
+*.hdf5
