@@ -202,4 +202,11 @@ H5Dwrite(dataset, H5T_NATIVE_INT, memspace, filespace, xfer_plist, data_pointer)
 
 ### Case study: parallel write
 
+Read through the example code in [](./hdf5-parallel-example/). The program demonstrates parallel HDF5 I/O by writing one integer from each MPI process.
+
+Exercises:
+1. Ensure you understand the steps for creating and opening an HDF5 file for parallel access.
+2. Compile and run the program with 4 MPI processes. Inspect the output file `parallel_out.h5` using `h5dump`. Try to understand the relevant hyperslab selection logic used in the example code.
+3. Run the program again with a different number of MPI processes and verify that the dataset shape and contents have changed.
+4. Write a modified version of the code as instructed in [](./hdf5-parallel-exercise/)
 

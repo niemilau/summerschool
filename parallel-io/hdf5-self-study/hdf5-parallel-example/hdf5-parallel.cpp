@@ -14,13 +14,15 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &ntasks);
 
-    // Configure HDF5 to use parallel I/O via MPI (by default HDF5 does not utilize MPI).
-    // The main way of configuring the behavior of HDF5 functions is via objects called Property Lists (plist).
-    // Property Lists are created using the `H5Pcreate` API call. When creating one, we must also specify a "category" or "type"
-    // that lets HDF5 know what the plist will be used for. Eg: does the plist configure file creation, file access, or something else.
-    // MPI-IO requires that multiple processes have access to the file, so we need a Property List that configures file access.
-    // To grant this access, we write info about our MPI setup (communicator) to the plist,
-    // then pass the plist to `H5Fcreate` instead of using default access settings.
+    /*
+    Configure HDF5 to use parallel I/O via MPI (by default HDF5 does not utilize MPI).
+    The main way of configuring the behavior of HDF5 functions is via objects called Property Lists (plist).
+    Property Lists are created using the `H5Pcreate` API call. When creating one, we must also specify a "category" or "type"
+    that lets HDF5 know what the plist will be used for. Eg: does the plist configure file creation, file access, or something else.
+    MPI-IO requires that multiple processes have access to the file, so we need a Property List that configures file access.
+    To grant this access, we write info about our MPI setup (communicator) to the plist,
+    then pass the plist to `H5Fcreate` instead of using default access settings.
+    */
 
     hid_t plist = H5Pcreate(H5P_FILE_ACCESS);
     // Write our MPI communicator as a "property". Note the abbreviation: fapl = File Access Property List
@@ -35,9 +37,8 @@ int main(int argc, char** argv) {
         plist               // Non-default File Access behavior to allow MPI-IO
     );
 
-    // Next goal is to make each MPI process write to different parts of the file, 1 integer from each process (the rank).
-    // As before we first create a dataspace to define data shape, 1D array of length 'ntasks' in this case.
-    // We also create the dataset where the data will eventually be written to.
+    // Create dataspace and dataset. Note that we wish to create only one dataset, NOT one dataset per process!
+    // Hence all processes must call H5Dcreate() with the same dataspace (it is a collective routine).
 
     hsize_t dims[] = { (hsize_t) ntasks }; // Explicit cast from 'int' to HDF5 size type
     hid_t dataspace = H5Screate_simple(1, dims, NULL);
