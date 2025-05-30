@@ -81,12 +81,13 @@ int main(int argc, char** argv) {
         &rank           // Memory address of the data
     );
 
-    // Close all handles and return
+    // Close all handles and finalize. Note that these are collective operations
     H5Dclose(dataset);
     H5Sclose(dataspace);
     H5Sclose(memspace);
     H5Fclose(file);
     H5Pclose(plist);
+
     MPI_Finalize();
     return 0;
 }
