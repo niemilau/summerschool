@@ -119,7 +119,7 @@ Often it it convenient to inspect HDF5 file contents directly from the command l
 
 ### Case study: Writing a 2D dataset
 
-Read through the example code (C++ or Fortran) in [`hdf5-write-matrix`](hdf5-write-matrix/). This program creates a contiguous 1D array and writes it to an HDF5 file as a 2D dataset (a common way of implementing multidimensional arrays is to use a large 1D array and simply interpret it as N-dimensional). A metadata field is also written using a `double` attribute.
+Read through the example code (C++ or Fortran) in [`hdf5-write-matrix`](./hdf5-write-matrix/). This program creates a contiguous 1D array and writes it to an HDF5 file as a 2D dataset (a common way of implementing multidimensional arrays is to use a large 1D array and simply interpret it as N-dimensional). A metadata field is also written using a `double` attribute.
 
 Exercises:
 1. Compile and run the program (without MPI, or just 1 MPI process). It should produce a file called `matrix.h5` in the working directory. See [](hdf5-exercise-instructions.md) for compilation instructions.
@@ -202,7 +202,7 @@ H5Dwrite(dataset, H5T_NATIVE_INT, memspace, filespace, xfer_plist, data_pointer)
 
 ### Case study: parallel write
 
-Read through the example code in [](./hdf5-parallel-example/). The program demonstrates parallel HDF5 I/O by writing one integer from each MPI process.
+Read through the example code [`hdf5-parallel-example`](./hdf5-parallel-example/). The program demonstrates parallel HDF5 I/O by writing one integer from each MPI process.
 
 **Tasks:**
 1. Ensure you understand the steps for creating and opening an HDF5 file for parallel access.
@@ -212,4 +212,3 @@ Read through the example code in [](./hdf5-parallel-example/). The program demon
 **Exercise:**
 
 Write a modified version of the program as instructed in [](./hdf5-parallel-exercise/README.md)
-
