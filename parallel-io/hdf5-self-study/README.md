@@ -211,4 +211,4 @@ Read through the example code [`hdf5-parallel-example`](./hdf5-parallel-example/
 
 **Exercise:**
 
-Write a modified version of the program as instructed in [](./hdf5-parallel-exercise/README.md)
+Write a modified version of the program as instructed in [`hdf5-parallel-exercise`](./hdf5-parallel-exercise/README.md).
